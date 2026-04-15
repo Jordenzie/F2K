@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Footing Preliminary Prototype</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="titlebar">
+        <div class="window-chrome" aria-hidden="true">
+          <span class="chrome-dot chrome-close"></span>
+          <span class="chrome-dot chrome-minimize"></span>
+          <span class="chrome-dot chrome-expand"></span>
+        </div>
+        <div class="titleblock">
+          <p class="eyebrow">Internal Structural Engineering</p>
+          <h1>Spread Footing Preliminary Design Assistant</h1>
+        </div>
+        <div class="title-meta">
+          <span class="meta-chip">Rectangular isolated footing</span>
+          <span class="meta-chip">Single column</span>
+          <span class="meta-chip meta-chip-warning">Preliminary only</span>
+          <button id="reset-layout" type="button" class="meta-button">Reset Layout</button>
+        </div>
+      </header>
+
+      <main id="workspace" class="workspace">
+        <section class="dock-slot dock-slot-top-left" data-slot="top-left">
+          <section class="window panel-window is-docked" data-panel-id="inputs" data-home-slot="top-left">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Inputs</span>
+                <h2>Design Inputs</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body">
+              <form id="design-form" class="compact-form">
+                <div class="field-group">
+                  <h3>Loads</h3>
+                  <label>
+                    <span>Service axial load, P</span>
+                    <input name="service_axial_kips" type="number" step="0.1" value="200" />
+                  </label>
+                  <label>
+                    <span>Service moment, Mx</span>
+                    <input name="service_mx_kip_ft" type="number" step="0.1" value="20" />
+                  </label>
+                  <label>
+                    <span>Service moment, My</span>
+                    <input name="service_my_kip_ft" type="number" step="0.1" value="10" />
+                  </label>
+                </div>
+
+                <div class="field-group">
+                  <h3>Soil + Geometry</h3>
+                  <label>
+                    <span>Allowable bearing</span>
+                    <input name="allowable_bearing_ksf" type="number" step="0.1" value="4" />
+                  </label>
+                  <label>
+                    <span>Column width</span>
+                    <input name="column_width_ft" type="number" step="0.1" value="1.5" />
+                  </label>
+                  <label>
+                    <span>Column length</span>
+                    <input name="column_length_ft" type="number" step="0.1" value="1.5" />
+                  </label>
+                  <label>
+                    <span>Footing thickness</span>
+                    <input name="footing_thickness_ft" type="number" step="0.1" value="1.5" />
+                  </label>
+                </div>
+
+                <div class="field-group">
+                  <h3>Trial Settings</h3>
+                  <label>
+                    <span>Size increment</span>
+                    <input name="dimension_increment_ft" type="number" step="0.1" value="0.5" />
+                  </label>
+                  <label>
+                    <span>Minimum width</span>
+                    <input name="min_footing_width_ft" type="number" step="0.1" value="2" />
+                  </label>
+                  <label>
+                    <span>Minimum length</span>
+                    <input name="min_footing_length_ft" type="number" step="0.1" value="2" />
+                  </label>
+                  <label>
+                    <span>Maximum width</span>
+                    <input name="max_footing_width_ft" type="number" step="0.1" value="30" />
+                  </label>
+                  <label>
+                    <span>Maximum length</span>
+                    <input name="max_footing_length_ft" type="number" step="0.1" value="30" />
+                  </label>
+                </div>
+              </form>
+            </div>
+          </section>
+        </section>
+        <div class="splitter splitter-vertical" data-splitter="vertical" title="Drag to resize columns"></div>
+        <section class="dock-slot dock-slot-top-right" data-slot="top-right">
+          <section class="window panel-window is-docked" data-panel-id="model" data-home-slot="top-right">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Model</span>
+                <h2>3D Footing View</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body window-body-model">
+              <div id="viewer-3d" class="viewer-stage"></div>
+              <div class="viewer-legend">
+                <span><i class="legend-swatch swatch-footing"></i>Footing</span>
+                <span><i class="legend-swatch swatch-column"></i>Column</span>
+                <span><i class="legend-swatch swatch-kern"></i>Middle Third</span>
+                <span><i class="legend-swatch swatch-load"></i>Load Point</span>
+              </div>
+            </div>
+          </section>
+        </section>
+        <div class="splitter splitter-horizontal" data-splitter="horizontal" title="Drag to resize rows"></div>
+        <section class="dock-slot dock-slot-bottom-left" data-slot="bottom-left">
+          <section class="window panel-window is-docked" data-panel-id="results" data-home-slot="bottom-left">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Results</span>
+                <h2>Live Results</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body">
+              <div class="status-strip">
+                <div class="status-card">
+                  <span class="status-label">Status</span>
+                  <strong id="status-pill" class="pill pill-neutral">Waiting</strong>
+                </div>
+                <div class="status-card">
+                  <span class="status-label">Governing Check</span>
+                  <strong id="governing-check">No calculation yet.</strong>
+                </div>
+              </div>
+
+              <div class="metrics-grid">
+                <article class="metric-card">
+                  <span>Required Area</span>
+                  <strong id="required-area">--</strong>
+                </article>
+                <article class="metric-card">
+                  <span>Recommended Size</span>
+                  <strong id="recommended-size">--</strong>
+                </article>
+                <article class="metric-card">
+                  <span>Bearing</span>
+                  <strong id="bearing-summary">--</strong>
+                </article>
+                <article class="metric-card">
+                  <span>Eccentricity</span>
+                  <strong id="eccentricity-summary">--</strong>
+                </article>
+              </div>
+
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <h3>Pressure</h3>
+                  <dl>
+                    <div>
+                      <dt>qmax</dt>
+                      <dd id="qmax">--</dd>
+                    </div>
+                    <div>
+                      <dt>qmin</dt>
+                      <dd id="qmin">--</dd>
+                    </div>
+                    <div>
+                      <dt>Utilization</dt>
+                      <dd id="bearing-utilization">--</dd>
+                    </div>
+                  </dl>
+                </article>
+
+                <article class="detail-card">
+                  <h3>Checks</h3>
+                  <ul class="check-list">
+                    <li><span>Bearing pass</span><strong id="bearing-pass">--</strong></li>
+                    <li><span>Middle third</span><strong id="middle-third">--</strong></li>
+                    <li><span>Full contact</span><strong id="full-contact">--</strong></li>
+                    <li><span>Outside scope</span><strong id="outside-scope">--</strong></li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+          </section>
+        </section>
+        <section class="dock-slot dock-slot-bottom-right" data-slot="bottom-right">
+          <section class="window panel-window is-docked" data-panel-id="notes" data-home-slot="bottom-right">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Notes</span>
+                <h2>Warnings + Assumptions</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body window-body-notes">
+              <div class="message-grid">
+                <article class="message-card warning-card">
+                  <h3>Warnings</h3>
+                  <ul id="warnings-list" class="message-list">
+                    <li>No warnings yet.</li>
+                  </ul>
+                </article>
+
+                <article class="message-card assumption-card">
+                  <h3>Assumptions</h3>
+                  <ul id="assumptions-list" class="message-list">
+                    <li>Waiting for calculation.</li>
+                  </ul>
+                </article>
+              </div>
+
+              <footer class="results-footer">
+                <p id="prelim-note">Preliminary only - verify in full design software.</p>
+              </footer>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
