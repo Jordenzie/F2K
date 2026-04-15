@@ -78,8 +78,16 @@ def trial_footing_dimensions_ft(design_input: FootingDesignInput, required_area_
         ratio = design_input.column_length_ft / design_input.column_width_ft
         ratio = min(max(ratio, 0.5), 2.0)
 
-    width_ft = math.sqrt(required_area_sqft / ratio)
-    length_ft = width_ft * ratio
+    computed_width_ft = math.sqrt(required_area_sqft / ratio)
+    computed_length_ft = computed_width_ft * ratio
+
+    width_ft = design_input.trial_footing_width_ft
+    length_ft = design_input.trial_footing_length_ft
+
+    if width_ft is None:
+        width_ft = computed_width_ft
+    if length_ft is None:
+        length_ft = computed_length_ft
 
     width_ft = max(width_ft, design_input.column_width_ft, design_input.min_footing_width_ft)
     length_ft = max(length_ft, design_input.column_length_ft, design_input.min_footing_length_ft)
@@ -226,6 +234,10 @@ def validate_basic_inputs(design_input: FootingDesignInput) -> None:
         raise ValueError("Dimension increment must be positive.")
     if design_input.min_footing_width_ft <= 0.0 or design_input.min_footing_length_ft <= 0.0:
         raise ValueError("Minimum footing dimensions must be positive.")
+    if design_input.trial_footing_width_ft is not None and design_input.trial_footing_width_ft <= 0.0:
+        raise ValueError("Explicit trial footing width must be positive.")
+    if design_input.trial_footing_length_ft is not None and design_input.trial_footing_length_ft <= 0.0:
+        raise ValueError("Explicit trial footing length must be positive.")
     if design_input.max_footing_width_ft < design_input.min_footing_width_ft:
         raise ValueError("Maximum footing width cannot be smaller than the minimum width.")
     if design_input.max_footing_length_ft < design_input.min_footing_length_ft:

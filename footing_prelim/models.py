@@ -25,6 +25,8 @@ class FootingDesignInput:
     column_width_ft: float = 1.5
     column_length_ft: float = 1.5
     footing_thickness_ft: float = 1.5
+    trial_footing_width_ft: Optional[float] = None
+    trial_footing_length_ft: Optional[float] = None
     concrete_strength_ksi: float = 4.0
     steel_yield_ksi: float = 60.0
     dimension_increment_ft: float = 0.5

@@ -1,9 +1,9 @@
 const STATUS_COLORS = {
-  PASS: "#59E8DF",
-  PASS_WITH_WARNINGS: "#8CEEDB",
-  WARNING: "#8CEEDB",
-  OUTSIDE_SCOPE: "#7AD0FF",
-  WAITING: "#4D726A",
+  PASS: "#FF7A1A",
+  PASS_WITH_WARNINGS: "#FF9B38",
+  WARNING: "#FFB14D",
+  OUTSIDE_SCOPE: "#8FA4FF",
+  WAITING: "#58627D",
 };
 
 export class FootingViewer {
@@ -198,12 +198,12 @@ export class FootingViewer {
             face,
             scene,
             tintHex(footingColor, footingFaceTints[index] ?? -0.1),
-            "#8BECE2"
+            "#FFB26E"
           ),
       });
     });
 
-    const columnFaceColors = ["#D8FFF1", "#6C95A3", "#C7F6EA", "#9BCAD4", "#A7DBE0", "#8ABBCD"];
+    const columnFaceColors = ["#D7DEF8", "#495779", "#BBC7EB", "#67769B", "#93A1CA", "#5A6789"];
     columnFaces.forEach((face, index) => {
       drawables.push({
         depth: averageDepth(face, scene),
@@ -212,18 +212,18 @@ export class FootingViewer {
             ctx,
             face,
             scene,
-            columnFaceColors[index] ?? "#8ABBCD",
-            "#D8FFF1"
+            columnFaceColors[index] ?? "#5A6789",
+            "#DDE7FF"
           ),
       });
     });
 
     drawables.sort((a, b) => a.depth - b.depth).forEach((item) => item.draw());
 
-    drawPolyline(ctx, [...kernPoints, kernPoints[0]], scene, "#7AD0FF", 2.2, [6, 5]);
-    drawPolyline(ctx, [centroidPoint, loadPoint], scene, "#9DE7D1", 2, [5, 5]);
-    drawMarker(ctx, centroidPoint, scene, "#59E8DF", 4.5);
-    drawMarker(ctx, loadPoint, scene, "#D8FFF1", 5.5);
+    drawPolyline(ctx, [...kernPoints, kernPoints[0]], scene, "#8FA4FF", 2.2, [6, 5]);
+    drawPolyline(ctx, [centroidPoint, loadPoint], scene, "#FF8B2A", 2, [5, 5]);
+    drawMarker(ctx, centroidPoint, scene, "#FF7A1A", 4.5);
+    drawMarker(ctx, loadPoint, scene, "#F6F8FF", 5.5);
     drawLoadArrow(ctx, loadPoint, scene);
     drawPressureBars(ctx, footingLength, footingWidth, thickness, qmin, qmax, scene);
     drawLabels(ctx, footingLength, footingWidth, thickness, eccentricityX, eccentricityY, scene);
@@ -232,12 +232,12 @@ export class FootingViewer {
 
 function drawBackground(ctx, width, height) {
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, "#17302C");
-  gradient.addColorStop(1, "#0A1413");
+  gradient.addColorStop(0, "#0A0F1C");
+  gradient.addColorStop(1, "#05070D");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.04)";
+  ctx.strokeStyle = "rgba(121, 139, 194, 0.09)";
   ctx.lineWidth = 1;
   for (let x = 0; x < width; x += 32) {
     ctx.beginPath();
@@ -245,10 +245,19 @@ function drawBackground(ctx, width, height) {
     ctx.lineTo(x, height);
     ctx.stroke();
   }
+  for (let y = 0; y < height; y += 32) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
 
-  ctx.fillStyle = "rgba(183,247,217,0.07)";
+  const glow = ctx.createRadialGradient(width * 0.62, height * 0.22, 12, width * 0.62, height * 0.22, width * 0.38);
+  glow.addColorStop(0, "rgba(255, 122, 26, 0.12)");
+  glow.addColorStop(1, "rgba(255, 122, 26, 0)");
+  ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.ellipse(width * 0.52, height * 0.16, width * 0.34, height * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(width * 0.62, height * 0.22, width * 0.34, height * 0.2, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -357,7 +366,7 @@ function drawLoadArrow(ctx, point, scene) {
   const pBase = project(base, scene);
 
   ctx.save();
-  ctx.strokeStyle = "#9DE7D1";
+  ctx.strokeStyle = "#FF8B2A";
   ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(pTop.x, pTop.y);
@@ -369,7 +378,7 @@ function drawLoadArrow(ctx, point, scene) {
   ctx.lineTo(pBase.x - 6, pBase.y - 10);
   ctx.lineTo(pBase.x + 6, pBase.y - 10);
   ctx.closePath();
-  ctx.fillStyle = "#9DE7D1";
+  ctx.fillStyle = "#FF8B2A";
   ctx.fill();
   ctx.restore();
 }
@@ -397,8 +406,8 @@ function drawPressureBars(ctx, footingLength, footingWidth, thickness, qmin, qma
       ctx,
       face,
       scene,
-      index < 3 ? "rgba(89,232,223,0.38)" : "rgba(183,247,217,0.28)",
-      "rgba(216,255,241,0.32)"
+      index < 3 ? "rgba(255,122,26,0.34)" : "rgba(143,164,255,0.24)",
+      "rgba(221,231,255,0.26)"
     );
   });
 }
@@ -413,7 +422,7 @@ function drawLabels(ctx, footingLength, footingWidth, thickness, ex, ey, scene) 
   ];
 
   ctx.save();
-  ctx.fillStyle = "rgba(237,246,241,0.88)";
+  ctx.fillStyle = "rgba(238,242,255,0.92)";
   ctx.font = '12px Inter, "SF Pro Text", sans-serif';
   points.forEach(({ label, point }) => {
     const p = project(point, scene);

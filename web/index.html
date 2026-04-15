@@ -3,27 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Footing Preliminary Prototype</title>
+    <title>MVP</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="page-shell">
-      <header class="titlebar">
-        <div class="titleblock">
-          <p class="eyebrow">Internal Structural Engineering</p>
-          <h1>Spread Footing Preliminary Design Assistant</h1>
+      <header class="titlebar titlebar-ai">
+        <div class="ai-toolbar-main">
+          <div class="titleblock ai-titleblock">
+            <p class="eyebrow">AI Design Assistant</p>
+            <h1>Parameter Suggestion Engine</h1>
+            <p class="ai-header-note">AI suggestions are for preliminary design only. Verify all results with full engineering analysis.</p>
+          </div>
+          <form id="ai-assistant-form" class="ai-assistant-form">
+            <label class="ai-input-wrap" for="ai-prompt">
+              <span class="status-label">AI Design Assistant</span>
+              <input
+                id="ai-prompt"
+                name="ai_prompt"
+                type="text"
+                placeholder="Describe what you want to change (e.g., reduce bearing pressure, try square footing, minimize size)"
+              />
+            </label>
+            <button id="ai-apply-button" type="submit" class="meta-button">Apply Suggestion</button>
+            <div id="ai-loading" class="ai-loading" hidden>
+              <span class="ai-spinner" aria-hidden="true"></span>
+              <span>Applying...</span>
+            </div>
+            <button id="reset-layout" type="button" class="meta-button meta-button-secondary">Reset Layout</button>
+          </form>
         </div>
-        <div class="title-meta">
-          <span class="meta-chip">Rectangular isolated footing</span>
-          <span class="meta-chip">Single column</span>
-          <span class="meta-chip meta-chip-warning">Preliminary only</span>
-          <button id="reset-layout" type="button" class="meta-button">Reset Layout</button>
+        <div class="ai-result-strip">
+          <article class="ai-result-card">
+            <span class="status-label">Parameter Changes</span>
+            <ul id="ai-changes-list" class="message-list ai-message-list">
+              <li>No AI changes yet.</li>
+            </ul>
+          </article>
+          <article class="ai-result-card">
+            <span class="status-label">Explanation</span>
+            <p id="ai-explanation" class="ai-result-text">Waiting for AI suggestion.</p>
+          </article>
+          <article class="ai-result-card">
+            <span class="status-label">Warnings</span>
+            <ul id="ai-warnings-list" class="message-list ai-message-list">
+              <li>No AI warnings yet.</li>
+            </ul>
+          </article>
         </div>
       </header>
 
-      <main id="workspace" class="workspace">
-        <section class="dock-slot dock-slot-top-left" data-slot="top-left">
-          <section class="window panel-window is-docked" data-panel-id="inputs" data-home-slot="top-left">
+      <main id="workspace" class="workspace workspace-three-column">
+        <section class="dock-slot dock-slot-left" data-slot="left">
+          <section class="window panel-window is-docked" data-panel-id="inputs" data-home-slot="left">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Inputs</span>
@@ -35,6 +67,10 @@
             </div>
             <div class="window-body">
               <form id="design-form" class="compact-form">
+                <input name="trial_footing_width_ft" type="hidden" value="" />
+                <input name="trial_footing_length_ft" type="hidden" value="" />
+                <input name="concrete_strength_ksi" type="hidden" value="4" />
+                <input name="steel_yield_ksi" type="hidden" value="60" />
                 <div class="field-group">
                   <h3>Loads</h3>
                   <label>
@@ -98,9 +134,11 @@
             </div>
           </section>
         </section>
-        <div class="splitter splitter-vertical" data-splitter="vertical" title="Drag to resize columns"></div>
-        <section class="dock-slot dock-slot-top-right" data-slot="top-right">
-          <section class="window panel-window is-docked" data-panel-id="model" data-home-slot="top-right">
+
+        <div class="splitter splitter-vertical splitter-left" data-splitter="left" title="Drag to resize left panel"></div>
+
+        <section class="dock-slot dock-slot-center-top" data-slot="center-top">
+          <section class="window panel-window is-docked" data-panel-id="model" data-home-slot="center-top">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Model</span>
@@ -121,9 +159,48 @@
             </div>
           </section>
         </section>
-        <div class="splitter splitter-horizontal" data-splitter="horizontal" title="Drag to resize rows"></div>
-        <section class="dock-slot dock-slot-bottom-left" data-slot="bottom-left">
-          <section class="window panel-window is-docked" data-panel-id="results" data-home-slot="bottom-left">
+
+        <div class="splitter splitter-vertical splitter-right" data-splitter="right" title="Drag to resize right panel"></div>
+
+        <section class="dock-slot dock-slot-right" data-slot="right">
+          <section class="window panel-window is-docked" data-panel-id="notes" data-home-slot="right">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Notes</span>
+                <h2>Warnings + Assumptions</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body window-body-notes">
+              <div class="message-grid">
+                <article class="message-card warning-card">
+                  <h3>Warnings</h3>
+                  <ul id="warnings-list" class="message-list">
+                    <li>No warnings yet.</li>
+                  </ul>
+                </article>
+
+                <article class="message-card assumption-card">
+                  <h3>Assumptions</h3>
+                  <ul id="assumptions-list" class="message-list">
+                    <li>Waiting for calculation.</li>
+                  </ul>
+                </article>
+              </div>
+
+              <footer class="results-footer">
+                <p id="prelim-note">Preliminary only - verify in full design software.</p>
+              </footer>
+            </div>
+          </section>
+        </section>
+
+        <div class="splitter splitter-horizontal splitter-center" data-splitter="center" title="Drag to resize center stack"></div>
+
+        <section class="dock-slot dock-slot-center-bottom" data-slot="center-bottom">
+          <section class="window panel-window is-docked" data-panel-id="results" data-home-slot="center-bottom">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Results</span>
@@ -193,40 +270,6 @@
                   </ul>
                 </article>
               </div>
-            </div>
-          </section>
-        </section>
-        <section class="dock-slot dock-slot-bottom-right" data-slot="bottom-right">
-          <section class="window panel-window is-docked" data-panel-id="notes" data-home-slot="bottom-right">
-            <div class="window-header" data-window-handle>
-              <div class="window-tab">
-                <span class="status-label">Notes</span>
-                <h2>Warnings + Assumptions</h2>
-              </div>
-              <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
-              </div>
-            </div>
-            <div class="window-body window-body-notes">
-              <div class="message-grid">
-                <article class="message-card warning-card">
-                  <h3>Warnings</h3>
-                  <ul id="warnings-list" class="message-list">
-                    <li>No warnings yet.</li>
-                  </ul>
-                </article>
-
-                <article class="message-card assumption-card">
-                  <h3>Assumptions</h3>
-                  <ul id="assumptions-list" class="message-list">
-                    <li>Waiting for calculation.</li>
-                  </ul>
-                </article>
-              </div>
-
-              <footer class="results-footer">
-                <p id="prelim-note">Preliminary only - verify in full design software.</p>
-              </footer>
             </div>
           </section>
         </section>

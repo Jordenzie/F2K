@@ -1,7 +1,7 @@
 # Proposed V1 Structure
 
 ```text
-F2K/
+MVP/
 |-- PRODUCT_SPEC.md
 |-- PROJECT_STRUCTURE.md
 |-- dev_server.py

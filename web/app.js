@@ -2,9 +2,14 @@ const form = document.getElementById("design-form");
 const workspace = document.getElementById("workspace");
 const viewerContainer = document.getElementById("viewer-3d");
 const resetLayoutButton = document.getElementById("reset-layout");
+const aiAssistantForm = document.getElementById("ai-assistant-form");
+const aiPromptInput = document.getElementById("ai-prompt");
+const aiApplyButton = document.getElementById("ai-apply-button");
+const aiLoading = document.getElementById("ai-loading");
 let viewer = {
   update() {},
 };
+let latestResult = null;
 
 const elements = {
   statusPill: document.getElementById("status-pill"),
@@ -23,6 +28,9 @@ const elements = {
   warningsList: document.getElementById("warnings-list"),
   assumptionsList: document.getElementById("assumptions-list"),
   prelimNote: document.getElementById("prelim-note"),
+  aiChangesList: document.getElementById("ai-changes-list"),
+  aiExplanation: document.getElementById("ai-explanation"),
+  aiWarningsList: document.getElementById("ai-warnings-list"),
 };
 
 const windows = [...document.querySelectorAll(".panel-window")];
@@ -30,15 +38,16 @@ const splitters = [...document.querySelectorAll(".splitter")];
 const slots = [...document.querySelectorAll(".dock-slot")];
 
 const defaultLayout = {
-  widthRatio: 0.5,
-  heightRatio: 0.54,
+  leftRatio: 0.26,
+  rightRatio: 0.26,
+  centerTopRatio: 0.58,
 };
 
 const defaultSlotByPanel = {
-  inputs: "top-left",
-  model: "top-right",
-  results: "bottom-left",
-  notes: "bottom-right",
+  inputs: "left",
+  model: "center-top",
+  results: "center-bottom",
+  notes: "right",
 };
 
 let debounceTimer = null;
@@ -55,6 +64,7 @@ function initializeLayout() {
   bindWindowMaximize();
   bindWindowDrag();
   bindSplitters();
+  bindAiAssistant();
   form.addEventListener("input", scheduleCalculation, { passive: true });
   resetLayoutButton.addEventListener("click", resetLayout);
   window.addEventListener("keydown", handleKeydown);
@@ -119,23 +129,48 @@ function bindSplitters() {
   });
 }
 
+function bindAiAssistant() {
+  if (!aiAssistantForm) {
+    return;
+  }
+
+  aiAssistantForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await applyAiSuggestion();
+  });
+}
+
 function startSplitterDrag(event, splitterKey) {
   event.preventDefault();
   const workspaceRect = workspace.getBoundingClientRect();
   const splitter = document.querySelector(`.splitter[data-splitter="${splitterKey}"]`);
   splitter.classList.add("is-active");
-  const minPanelWidth = 260;
-  const minPanelHeight = 180;
+  const minSideWidth = 220;
+  const minCenterWidth = 320;
+  const minCenterTopHeight = 200;
+  const minCenterBottomHeight = 170;
 
   const onPointerMove = (moveEvent) => {
-    if (splitterKey === "vertical") {
-      const nextWidth = clamp(moveEvent.clientX - workspaceRect.left, minPanelWidth, workspaceRect.width - minPanelWidth - 8);
+    if (splitterKey === "left") {
+      const maxLeft = workspaceRect.width - getRightWidth() - minCenterWidth - 16;
+      const nextWidth = clamp(moveEvent.clientX - workspaceRect.left, minSideWidth, maxLeft);
       workspace.style.setProperty("--left-width", `${nextWidth}px`);
       return;
     }
 
-    const nextHeight = clamp(moveEvent.clientY - workspaceRect.top, minPanelHeight, workspaceRect.height - minPanelHeight - 8);
-    workspace.style.setProperty("--top-height", `${nextHeight}px`);
+    if (splitterKey === "right") {
+      const maxRight = workspaceRect.width - getLeftWidth() - minCenterWidth - 16;
+      const nextWidth = clamp(workspaceRect.right - moveEvent.clientX, minSideWidth, maxRight);
+      workspace.style.setProperty("--right-width", `${nextWidth}px`);
+      return;
+    }
+
+    const nextHeight = clamp(
+      moveEvent.clientY - workspaceRect.top,
+      minCenterTopHeight,
+      workspaceRect.height - minCenterBottomHeight - 8
+    );
+    workspace.style.setProperty("--center-top-height", `${nextHeight}px`);
   };
 
   const onPointerUp = () => {
@@ -156,23 +191,40 @@ function getWorkspaceHeight() {
   return workspace.getBoundingClientRect().height;
 }
 
+function getLeftWidth() {
+  return parseFloat(getComputedStyle(workspace).getPropertyValue("--left-width")) || 0;
+}
+
+function getRightWidth() {
+  return parseFloat(getComputedStyle(workspace).getPropertyValue("--right-width")) || 0;
+}
+
+function getCenterTopHeight() {
+  return parseFloat(getComputedStyle(workspace).getPropertyValue("--center-top-height")) || 0;
+}
+
 function resetWorkspaceSize() {
   const width = getWorkspaceWidth();
   const height = getWorkspaceHeight();
-  const leftWidth = Math.round(width * defaultLayout.widthRatio);
-  const topHeight = Math.round(height * defaultLayout.heightRatio);
-  workspace.style.setProperty("--left-width", `${clamp(leftWidth, 260, width - 268)}px`);
-  workspace.style.setProperty("--top-height", `${clamp(topHeight, 180, height - 188)}px`);
+  const leftWidth = Math.round(width * defaultLayout.leftRatio);
+  const rightWidth = Math.round(width * defaultLayout.rightRatio);
+  const centerTopHeight = Math.round(height * defaultLayout.centerTopRatio);
+  workspace.style.setProperty("--left-width", `${clamp(leftWidth, 220, width - rightWidth - 336)}px`);
+  workspace.style.setProperty("--right-width", `${clamp(rightWidth, 220, width - leftWidth - 336)}px`);
+  workspace.style.setProperty("--center-top-height", `${clamp(centerTopHeight, 200, height - 178)}px`);
 }
 
 function syncWorkspaceBounds() {
   const width = getWorkspaceWidth();
   const height = getWorkspaceHeight();
-  const styles = getComputedStyle(workspace);
-  const currentLeft = parseFloat(styles.getPropertyValue("--left-width")) || width * defaultLayout.widthRatio;
-  const currentTop = parseFloat(styles.getPropertyValue("--top-height")) || height * defaultLayout.heightRatio;
-  workspace.style.setProperty("--left-width", `${clamp(currentLeft, 220, width - 228)}px`);
-  workspace.style.setProperty("--top-height", `${clamp(currentTop, 160, height - 168)}px`);
+  const currentLeft = getLeftWidth() || width * defaultLayout.leftRatio;
+  const currentRight = getRightWidth() || width * defaultLayout.rightRatio;
+  const currentCenterTop = getCenterTopHeight() || height * defaultLayout.centerTopRatio;
+  const leftClamped = clamp(currentLeft, 220, width - currentRight - 336);
+  const rightClamped = clamp(currentRight, 220, width - leftClamped - 336);
+  workspace.style.setProperty("--left-width", `${leftClamped}px`);
+  workspace.style.setProperty("--right-width", `${rightClamped}px`);
+  workspace.style.setProperty("--center-top-height", `${clamp(currentCenterTop, 200, height - 178)}px`);
 }
 
 function resetWindowPositions() {
@@ -354,6 +406,10 @@ function formatBool(value) {
   return value ? "Yes" : "No";
 }
 
+function formatAiChange(change) {
+  return `${change.field_label}: ${formatNumber(change.before_value, ` ${change.units}`)} -> ${formatNumber(change.after_value, ` ${change.units}`)}`;
+}
+
 function setStatus(status) {
   const normalized = status || "WAITING";
   elements.statusPill.textContent = normalized.replaceAll("_", " ");
@@ -395,6 +451,7 @@ function renderMessages(container, values, emptyMessage) {
 }
 
 function renderResult(result) {
+  latestResult = result;
   setStatus(result.summary?.status);
   elements.governingCheck.textContent = result.summary?.governing_check || "--";
   elements.requiredArea.textContent = formatNumber(result.required_area_sqft, " sf");
@@ -421,7 +478,37 @@ function renderResult(result) {
   viewer.update(result);
 }
 
+function renderAiAssistantState(payload = {}) {
+  const changes = (payload.applied_changes || []).map(formatAiChange);
+  renderMessages(elements.aiChangesList, changes, "No AI changes yet.");
+  elements.aiExplanation.textContent =
+    payload.explanation || "Waiting for AI suggestion.";
+  renderMessages(elements.aiWarningsList, payload.warnings || [], "No AI warnings yet.");
+}
+
+function syncFormWithInputData(inputData) {
+  if (!inputData) {
+    return;
+  }
+
+  Object.entries(inputData).forEach(([key, value]) => {
+    const field = form.elements.namedItem(key);
+    if (!field) {
+      return;
+    }
+
+    field.value = value === null || value === undefined ? "" : String(value);
+  });
+}
+
+function setAiLoadingState(isLoading) {
+  aiApplyButton.disabled = isLoading;
+  aiPromptInput.disabled = isLoading;
+  aiLoading.hidden = !isLoading;
+}
+
 function renderError(message) {
+  latestResult = null;
   setStatus("WARNING");
   elements.governingCheck.textContent = message;
   elements.requiredArea.textContent = "--";
@@ -458,6 +545,50 @@ async function calculate() {
     renderResult(data);
   } catch (error) {
     renderError(error.message || "Calculation failed.");
+  }
+}
+
+async function applyAiSuggestion() {
+  const userPrompt = aiPromptInput.value.trim();
+  if (!userPrompt) {
+    renderAiAssistantState({
+      explanation: "Enter a request before applying an AI suggestion.",
+      warnings: ["AI prompt is required."],
+      applied_changes: [],
+    });
+    return;
+  }
+
+  setAiLoadingState(true);
+
+  try {
+    const response = await fetch("/api/ai-suggest", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_prompt: userPrompt,
+        project_data: collectFormData(),
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "AI suggestion failed.");
+    }
+
+    syncFormWithInputData(data.updated_input);
+    renderResult(data.updated_result);
+    renderAiAssistantState(data);
+  } catch (error) {
+    renderAiAssistantState({
+      explanation: "AI suggestion could not be applied.",
+      warnings: [error.message || "AI suggestion failed."],
+      applied_changes: [],
+    });
+  } finally {
+    setAiLoadingState(false);
   }
 }
 

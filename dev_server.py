@@ -9,6 +9,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from footing_prelim.ai_assistant import run_ai_design_assistant_workflow
 from footing_prelim.calculations import design_rectangular_footing
 from footing_prelim.models import FootingDesignInput
 
@@ -35,29 +36,14 @@ class PrototypeHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
-        """Handle calculation requests from the browser."""
+        """Handle calculation and AI assistant requests from the browser."""
 
         parsed = urlparse(self.path)
-        if parsed.path != "/api/design":
-            self.send_error(HTTPStatus.NOT_FOUND, "Unknown API endpoint.")
-            return
-
         content_length = int(self.headers.get("Content-Length", "0"))
         raw_body = self.rfile.read(content_length)
 
         try:
             payload = json.loads(raw_body.decode("utf-8"))
-            design_input = build_design_input(payload)
-            result = design_rectangular_footing(design_input)
-        except ValueError as exc:
-            self.send_json(
-                {
-                    "error": "INVALID_INPUT",
-                    "message": str(exc),
-                },
-                status=HTTPStatus.BAD_REQUEST,
-            )
-            return
         except json.JSONDecodeError:
             self.send_json(
                 {
@@ -68,7 +54,37 @@ class PrototypeHandler(SimpleHTTPRequestHandler):
             )
             return
 
-        self.send_json(asdict(result))
+        try:
+            if parsed.path == "/api/design":
+                design_input = build_design_input(payload)
+                result = design_rectangular_footing(design_input)
+                self.send_json(asdict(result))
+                return
+
+            if parsed.path == "/api/ai-suggest":
+                design_input = build_design_input(payload.get("project_data", {}))
+                user_prompt = str(payload.get("user_prompt", "")).strip()
+                result = run_ai_design_assistant_workflow(design_input, user_prompt)
+                self.send_json(asdict(result))
+                return
+
+            self.send_error(HTTPStatus.NOT_FOUND, "Unknown API endpoint.")
+        except ValueError as exc:
+            self.send_json(
+                {
+                    "error": "INVALID_INPUT",
+                    "message": str(exc),
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        except RuntimeError as exc:
+            self.send_json(
+                {
+                    "error": "AI_RUNTIME_ERROR",
+                    "message": str(exc),
+                },
+                status=HTTPStatus.BAD_GATEWAY,
+            )
 
     def send_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:
         """Write a JSON response."""
@@ -88,7 +104,10 @@ def build_design_input(payload: dict) -> FootingDesignInput:
     cleaned_payload = {key: value for key, value in payload.items() if key in allowed_fields}
 
     # Keep the casting rules simple and explicit for early-stage auditing.
-    for key, value in cleaned_payload.items():
+    for key, value in list(cleaned_payload.items()):
+        if value in ("", None):
+            cleaned_payload[key] = None
+            continue
         cleaned_payload[key] = float(value)
 
     return FootingDesignInput(**cleaned_payload)

@@ -12,3 +12,5 @@ env/
 dist/
 build/
 *.egg-info/
+
+ai_assistant.log
