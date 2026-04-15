@@ -12,12 +12,15 @@ export class FootingViewer {
     this.canvas = document.createElement("canvas");
     this.overlay = document.createElement("div");
     this.overlay.className = "viewer-overlay";
-    this.overlay.innerHTML = "<span>Drag to orbit</span><span>Shift + drag to pan</span>";
+    this.overlay.innerHTML = "<span>Drag to orbit · Scroll to zoom</span><span>Shift + drag to pan</span>";
     this.container.append(this.canvas, this.overlay);
+    this.canvas.style.touchAction = "none";
+    this.container.style.touchAction = "none";
 
     this.context = this.canvas.getContext("2d");
     this.rotationX = -0.58;
     this.rotationY = 0.72;
+    this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
     this.result = null;
@@ -63,8 +66,8 @@ export class FootingViewer {
         this.panX = startPanX + deltaX;
         this.panY = startPanY + deltaY;
       } else {
-        this.rotationY = startRotY + deltaX * 0.008;
-        this.rotationX = clamp(startRotX + deltaY * 0.006, -1.25, 0.1);
+        this.rotationY = startRotY - deltaX * 0.008;
+        this.rotationX = startRotX + deltaY * 0.006;
       }
 
       this.render();
@@ -75,11 +78,38 @@ export class FootingViewer {
       this.canvas.releasePointerCapture(event.pointerId);
     });
 
-    this.canvas.addEventListener("wheel", (event) => {
+    const handleWheelZoom = (event) => {
       event.preventDefault();
-      this.rotationY += event.deltaY * 0.0009;
+      event.stopPropagation();
+
+      // Trackpads produce much smaller deltas than a mouse wheel, so scale gently.
+      const delta = clamp(event.deltaY, -80, 80);
+      const zoomFactor = Math.exp(-delta * 0.0025);
+      this.zoom = clamp(this.zoom * zoomFactor, 0.45, 2.8);
       this.render();
-    });
+    };
+
+    this.canvas.addEventListener("wheel", handleWheelZoom, { passive: false });
+    this.container.addEventListener("wheel", handleWheelZoom, { passive: false });
+
+    // Safari trackpad pinch can surface as gesture events instead of wheel events.
+    let gestureStartZoom = this.zoom;
+    const handleGesture = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.zoom = clamp(gestureStartZoom * event.scale, 0.45, 2.8);
+      this.render();
+    };
+
+    this.container.addEventListener(
+      "gesturestart",
+      (event) => {
+        event.preventDefault();
+        gestureStartZoom = this.zoom;
+      },
+      { passive: false }
+    );
+    this.container.addEventListener("gesturechange", handleGesture, { passive: false });
   }
 
   resize() {
@@ -123,11 +153,15 @@ export class FootingViewer {
     const qmin = Number(this.result?.qmin_ksf) || 0;
     const qmax = Number(this.result?.qmax_ksf) || 0;
 
-    const sceneScale = Math.min(width / (footingLength + 5), height / (footingWidth + thickness + 6)) * 20;
+    const baseScale = clamp(
+      Math.min(width / (footingLength + 5), height / (footingWidth + thickness + 6)) * 20,
+      22,
+      54
+    );
     const scene = {
       cx: width * 0.5 + this.panX,
       cy: height * 0.64 + this.panY,
-      scale: clamp(sceneScale, 22, 54),
+      scale: clamp(baseScale * this.zoom, 12, 180),
       rotX: this.rotationX,
       rotY: this.rotationY,
     };
@@ -154,6 +188,7 @@ export class FootingViewer {
 
     const drawables = [];
 
+    const footingFaceTints = [0.08, -0.18, 0.02, -0.08, -0.14, -0.12];
     footingFaces.forEach((face, index) => {
       drawables.push({
         depth: averageDepth(face, scene),
@@ -162,12 +197,13 @@ export class FootingViewer {
             ctx,
             face,
             scene,
-            tintHex(footingColor, index === 0 ? 0.08 : index === 1 ? -0.04 : -0.12),
+            tintHex(footingColor, footingFaceTints[index] ?? -0.1),
             "#8BECE2"
           ),
       });
     });
 
+    const columnFaceColors = ["#D8FFF1", "#6C95A3", "#C7F6EA", "#9BCAD4", "#A7DBE0", "#8ABBCD"];
     columnFaces.forEach((face, index) => {
       drawables.push({
         depth: averageDepth(face, scene),
@@ -176,7 +212,7 @@ export class FootingViewer {
             ctx,
             face,
             scene,
-            index === 0 ? "#D8FFF1" : index === 1 ? "#A4E7DE" : "#7DB8C9",
+            columnFaceColors[index] ?? "#8ABBCD",
             "#D8FFF1"
           ),
       });
@@ -233,9 +269,12 @@ function boxFaces({ center, width, height, depth }) {
   };
 
   return [
-    [p.ltf, p.rtf, p.rtb, p.ltb],
-    [p.lbb, p.rbb, p.rtb, p.ltb],
-    [p.rbf, p.rbb, p.rtb, p.rtf],
+    [p.ltf, p.rtf, p.rtb, p.ltb], // top
+    [p.lbf, p.rbf, p.rbb, p.lbb], // bottom
+    [p.lbf, p.rbf, p.rtf, p.ltf], // front
+    [p.lbb, p.rbb, p.rtb, p.ltb], // back
+    [p.lbf, p.lbb, p.ltb, p.ltf], // left
+    [p.rbf, p.rbb, p.rtb, p.rtf], // right
   ];
 }
 

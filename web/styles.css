@@ -413,6 +413,8 @@ input:focus {
     radial-gradient(circle at top, rgba(183, 247, 217, 0.08), transparent 36%),
     linear-gradient(180deg, #132421 0%, #0b1514 100%);
   overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .viewer-stage canvas {
