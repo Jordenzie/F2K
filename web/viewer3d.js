@@ -11,9 +11,15 @@ export class FootingViewer {
     this.container = container;
     this.canvas = document.createElement("canvas");
     this.overlay = document.createElement("div");
+    this.controls = document.createElement("div");
     this.overlay.className = "viewer-overlay";
-    this.overlay.innerHTML = "<span>Drag to orbit · Scroll to zoom</span><span>Shift + drag to pan</span>";
-    this.container.append(this.canvas, this.overlay);
+    this.controls.className = "viewer-controls";
+    this.overlay.innerHTML =
+      "<span>Drag to orbit · Scroll to zoom</span><span>Middle-drag or Shift + drag to pan</span>";
+    this.controls.innerHTML =
+      '<button type="button" class="viewer-control-button" data-zoom="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" class="viewer-control-button" data-zoom="out" aria-label="Zoom out">-</button>';
+    this.container.append(this.canvas, this.overlay, this.controls);
     this.canvas.style.touchAction = "none";
     this.container.style.touchAction = "none";
 
@@ -42,25 +48,24 @@ export class FootingViewer {
     let startPanY = this.panY;
     let isPanning = false;
 
-    this.canvas.addEventListener("pointerdown", (event) => {
+    const beginDrag = (clientX, clientY, shouldPan) => {
       dragging = true;
-      isPanning = event.shiftKey;
-      startX = event.clientX;
-      startY = event.clientY;
+      isPanning = shouldPan;
+      startX = clientX;
+      startY = clientY;
       startRotX = this.rotationX;
       startRotY = this.rotationY;
       startPanX = this.panX;
       startPanY = this.panY;
-      this.canvas.setPointerCapture(event.pointerId);
-    });
+    };
 
-    this.canvas.addEventListener("pointermove", (event) => {
+    const updateDrag = (clientX, clientY) => {
       if (!dragging) {
         return;
       }
 
-      const deltaX = event.clientX - startX;
-      const deltaY = event.clientY - startY;
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
 
       if (isPanning) {
         this.panX = startPanX + deltaX;
@@ -71,18 +76,103 @@ export class FootingViewer {
       }
 
       this.render();
+    };
+
+    const endDrag = () => {
+      dragging = false;
+    };
+
+    const applyZoom = (direction) => {
+      const zoomFactor = direction === "in" ? 1.15 : 1 / 1.15;
+      this.zoom = clamp(this.zoom * zoomFactor, 0.45, 2.8);
+      this.render();
+    };
+
+    this.controls.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-zoom]");
+      if (!button) {
+        return;
+      }
+
+      event.preventDefault();
+      applyZoom(button.dataset.zoom);
+    });
+
+    this.canvas.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 && event.button !== 1) {
+        return;
+      }
+
+      event.preventDefault();
+      beginDrag(event.clientX, event.clientY, event.button === 1 || event.shiftKey);
+    });
+
+    window.addEventListener("mousemove", (event) => {
+      updateDrag(event.clientX, event.clientY);
+    });
+
+    window.addEventListener("mouseup", (event) => {
+      if (event.button === 0 || event.button === 1) {
+        endDrag();
+      }
+    });
+
+    this.canvas.addEventListener("auxclick", (event) => {
+      if (event.button === 1) {
+        event.preventDefault();
+      }
+    });
+
+    this.canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    this.canvas.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse") {
+        return;
+      }
+
+      if (event.button !== 0 && event.button !== 1) {
+        return;
+      }
+
+      event.preventDefault();
+      beginDrag(event.clientX, event.clientY, event.button === 1 || event.shiftKey);
+      this.canvas.setPointerCapture(event.pointerId);
+    });
+
+    this.canvas.addEventListener("pointermove", (event) => {
+      if (event.pointerType === "mouse") {
+        return;
+      }
+
+      updateDrag(event.clientX, event.clientY);
     });
 
     this.canvas.addEventListener("pointerup", (event) => {
-      dragging = false;
+      if (event.pointerType === "mouse") {
+        return;
+      }
+
+      endDrag();
       this.canvas.releasePointerCapture(event.pointerId);
+    });
+
+    this.canvas.addEventListener("pointercancel", (event) => {
+      if (event.pointerType === "mouse") {
+        return;
+      }
+
+      endDrag();
+      if (this.canvas.hasPointerCapture(event.pointerId)) {
+        this.canvas.releasePointerCapture(event.pointerId);
+      }
     });
 
     const handleWheelZoom = (event) => {
       event.preventDefault();
       event.stopPropagation();
 
-      // Trackpads produce much smaller deltas than a mouse wheel, so scale gently.
       const delta = clamp(event.deltaY, -80, 80);
       const zoomFactor = Math.exp(-delta * 0.0025);
       this.zoom = clamp(this.zoom * zoomFactor, 0.45, 2.8);
@@ -251,14 +341,6 @@ function drawBackground(ctx, width, height) {
     ctx.lineTo(width, y);
     ctx.stroke();
   }
-
-  const glow = ctx.createRadialGradient(width * 0.62, height * 0.22, 12, width * 0.62, height * 0.22, width * 0.38);
-  glow.addColorStop(0, "rgba(255, 122, 26, 0.12)");
-  glow.addColorStop(1, "rgba(255, 122, 26, 0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.ellipse(width * 0.62, height * 0.22, width * 0.34, height * 0.2, 0, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 function boxFaces({ center, width, height, depth }) {

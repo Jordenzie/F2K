@@ -6,6 +6,8 @@ const aiAssistantForm = document.getElementById("ai-assistant-form");
 const aiPromptInput = document.getElementById("ai-prompt");
 const aiApplyButton = document.getElementById("ai-apply-button");
 const aiLoading = document.getElementById("ai-loading");
+const aiToggleHandle = document.querySelector("[data-ai-toggle]");
+const ASSET_VERSION = "20260414-1";
 let viewer = {
   update() {},
 };
@@ -55,7 +57,7 @@ function initializeLayout() {
 
 async function initializeViewer() {
   try {
-    const module = await import("/viewer3d.js");
+    const module = await import(`/viewer3d.js?v=${ASSET_VERSION}`);
     viewer = new module.FootingViewer(viewerContainer);
   } catch (error) {
     viewerContainer.innerHTML = '<div class="viewer-overlay"><span>3D preview unavailable</span><span>Layout and calculations are still active</span></div>';
@@ -99,10 +101,25 @@ function bindAiAssistant() {
     return;
   }
 
+  if (aiToggleHandle) {
+    aiToggleHandle.addEventListener("dblclick", (event) => {
+      if (event.target.closest("input, button")) {
+        return;
+      }
+      toggleAiAssistantExpanded();
+    });
+  }
+
   aiAssistantForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await applyAiSuggestion();
   });
+}
+
+function toggleAiAssistantExpanded() {
+  const nextExpanded = !aiAssistantForm.classList.contains("is-expanded");
+  aiAssistantForm.classList.toggle("is-expanded", nextExpanded);
+  aiAssistantForm.setAttribute("aria-expanded", String(nextExpanded));
 }
 
 function toggleMaximize(windowElement) {
@@ -122,8 +139,9 @@ function toggleMaximize(windowElement) {
   });
 
   workspace.classList.add("has-maximized");
+  document.body.classList.add("has-maximized-window");
   windowElement.classList.add("is-maximized");
-  workspace.appendChild(windowElement);
+  document.body.appendChild(windowElement);
   updateMaximizeButton(windowElement, true);
   maximizedWindow = windowElement;
 }
@@ -143,6 +161,7 @@ function restoreWindow(windowElement) {
   windowElement.classList.remove("is-maximized");
   updateMaximizeButton(windowElement, false);
   workspace.classList.remove("has-maximized");
+  document.body.classList.remove("has-maximized-window");
   windowPositions.delete(windowElement);
 
   if (maximizedWindow === windowElement) {

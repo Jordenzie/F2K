@@ -4,52 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MVP</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260414-1" />
   </head>
   <body>
     <div class="page-shell">
       <header class="titlebar titlebar-ai">
         <div class="ai-toolbar-main">
-          <div class="titleblock ai-titleblock">
-            <p class="eyebrow">AI Design Assistant</p>
-            <h1>Parameter Suggestion Engine</h1>
-            <p class="ai-header-note">AI suggestions are for preliminary design only. Verify all results with full engineering analysis.</p>
-          </div>
-          <form id="ai-assistant-form" class="ai-assistant-form">
-            <label class="ai-input-wrap" for="ai-prompt">
-              <span class="status-label">AI Design Assistant</span>
-              <input
-                id="ai-prompt"
-                name="ai_prompt"
-                type="text"
-                placeholder="Describe what you want to change (e.g., reduce bearing pressure, try square footing, minimize size)"
-              />
-            </label>
-            <button id="ai-apply-button" type="submit" class="meta-button">Apply Suggestion</button>
-            <div id="ai-loading" class="ai-loading" hidden>
-              <span class="ai-spinner" aria-hidden="true"></span>
-              <span>Applying...</span>
+          <form id="ai-assistant-form" class="ai-assistant-form" aria-expanded="false">
+            <div class="ai-command-main" data-ai-toggle>
+              <div class="ai-command-badge">
+                <span class="eyebrow">Ask The Assistant</span>
+              </div>
+              <label class="ai-input-wrap" for="ai-prompt">
+                <input
+                  id="ai-prompt"
+                  name="ai_prompt"
+                  type="text"
+                  placeholder="Try: reduce bearing pressure, make it square, or minimize footing size"
+                />
+              </label>
+              <div class="ai-command-actions">
+                <button id="ai-apply-button" type="submit" class="meta-button">Apply Suggestion</button>
+                <button id="reset-layout" type="button" class="meta-button meta-button-secondary">Reset Layout</button>
+                <div id="ai-loading" class="ai-loading" hidden>
+                  <span class="ai-spinner" aria-hidden="true"></span>
+                  <span>Applying...</span>
+                </div>
+              </div>
             </div>
-            <button id="reset-layout" type="button" class="meta-button meta-button-secondary">Reset Layout</button>
+            <div class="ai-inline-feedback">
+              <div class="ai-feedback-item">
+                <span class="status-label">Changes</span>
+                <ul id="ai-changes-list" class="message-list ai-message-list">
+                  <li>No AI changes yet.</li>
+                </ul>
+              </div>
+              <div class="ai-feedback-item">
+                <span class="status-label">Explanation</span>
+                <p id="ai-explanation" class="ai-result-text">Waiting for AI suggestion.</p>
+              </div>
+              <div class="ai-feedback-item">
+                <span class="status-label">Warnings</span>
+                <ul id="ai-warnings-list" class="message-list ai-message-list">
+                  <li>No AI warnings yet.</li>
+                </ul>
+              </div>
+            </div>
           </form>
-        </div>
-        <div class="ai-result-strip">
-          <article class="ai-result-card">
-            <span class="status-label">Parameter Changes</span>
-            <ul id="ai-changes-list" class="message-list ai-message-list">
-              <li>No AI changes yet.</li>
-            </ul>
-          </article>
-          <article class="ai-result-card">
-            <span class="status-label">Explanation</span>
-            <p id="ai-explanation" class="ai-result-text">Waiting for AI suggestion.</p>
-          </article>
-          <article class="ai-result-card">
-            <span class="status-label">Warnings</span>
-            <ul id="ai-warnings-list" class="message-list ai-message-list">
-              <li>No AI warnings yet.</li>
-            </ul>
-          </article>
         </div>
       </header>
 
@@ -259,6 +260,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js?v=20260414-1"></script>
   </body>
 </html>
