@@ -20,10 +20,10 @@
   --shadow-md: 0 14px 30px rgba(8, 15, 13, 0.24);
   --left-width: 50%;
   --top-height: 54%;
-  --radius-xl: 24px;
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 10px;
+  --radius-xl: 10px;
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  --radius-sm: 3px;
 }
 
 * {
@@ -57,46 +57,23 @@ body {
   height: calc(100vh - 20px);
   margin: 0 auto;
   padding: 0;
-  border-radius: 30px;
+  border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(12, 21, 20, 0.98), rgba(8, 14, 13, 1)),
     var(--shell-bg);
-  border: 1px solid var(--shell-edge);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
 .titlebar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px 7px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(8, 16, 14, 0.72);
-}
-
-.window-chrome {
-  display: flex;
-  gap: 6px;
-}
-
-.chrome-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-}
-
-.chrome-close {
-  background: #ff7e70;
-}
-
-.chrome-minimize {
-  background: #ffd164;
-}
-
-.chrome-expand {
-  background: #56d58e;
 }
 
 .titleblock {
@@ -148,7 +125,7 @@ h3 {
 .meta-button,
 .window-action {
   padding: 4px 7px;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
@@ -192,7 +169,7 @@ h3 {
   min-width: 0;
   min-height: 0;
   padding: 3px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   transition: background 120ms ease, outline-color 120ms ease;
 }
 
@@ -218,7 +195,7 @@ h3 {
 
 .dock-slot.is-target {
   background: rgba(89, 232, 223, 0.08);
-  outline: 1px dashed rgba(89, 232, 223, 0.5);
+  outline: 1px solid rgba(89, 232, 223, 0.5);
   outline-offset: -1px;
 }
 
@@ -265,7 +242,7 @@ h3 {
   content: "";
   position: absolute;
   width: 4px;
-  border-radius: 999px;
+  border-radius: 1px;
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -297,7 +274,7 @@ h3 {
   background:
     linear-gradient(180deg, rgba(18, 27, 26, 0.96), rgba(11, 18, 17, 1)),
     var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
@@ -356,7 +333,8 @@ body.is-dragging-panel .window-header {
   padding: 5px;
   min-height: 0;
   flex: 1 1 auto;
-  overflow: hidden;
+  overflow: auto;
+  scrollbar-gutter: stable;
   user-select: text;
 }
 
@@ -374,7 +352,7 @@ body.is-dragging-panel .window-header {
 .compact-form {
   display: grid;
   gap: 5px;
-  height: 100%;
+  height: max-content;
 }
 
 .field-group,
@@ -385,7 +363,7 @@ body.is-dragging-panel .window-header {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
     var(--panel-soft);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
 }
 
@@ -407,7 +385,7 @@ label {
 input {
   width: 100%;
   padding: 4px 6px;
-  border-radius: 8px;
+  border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
@@ -422,14 +400,15 @@ input:focus {
 
 .window-body-model {
   grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .viewer-stage {
   position: relative;
   width: 100%;
   min-height: 0;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     radial-gradient(circle at top, rgba(183, 247, 217, 0.08), transparent 36%),
     linear-gradient(180deg, #132421 0%, #0b1514 100%);
@@ -474,7 +453,7 @@ input:focus {
 .legend-swatch {
   width: 10px;
   height: 10px;
-  border-radius: 999px;
+  border-radius: 2px;
   display: inline-block;
 }
 
@@ -534,7 +513,7 @@ input:focus {
   width: fit-content;
   min-width: 4rem;
   padding: 4px 7px;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.62rem;
   font-weight: 600;
   color: #071413;
@@ -550,6 +529,26 @@ input:focus {
 
 .window-body-notes {
   grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.window-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.window-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.window-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.window-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
 }
 
 dl,
@@ -596,7 +595,7 @@ dl div:last-child,
 
 .message-list li {
   padding: 4px 5px;
-  border-radius: 8px;
+  border-radius: 3px;
   background: rgba(255, 255, 255, 0.03);
   font-size: 0.61rem;
   line-height: 1.18;
