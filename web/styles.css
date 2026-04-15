@@ -161,6 +161,18 @@ body.has-maximized-window {
   justify-self: end;
 }
 
+.ai-command-status {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 0.67rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.ai-command-status.has-warning {
+  color: #f3c28f;
+}
+
 .ai-loading {
   display: inline-flex;
   align-items: center;

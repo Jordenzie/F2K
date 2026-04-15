@@ -6,8 +6,9 @@ const aiAssistantForm = document.getElementById("ai-assistant-form");
 const aiPromptInput = document.getElementById("ai-prompt");
 const aiApplyButton = document.getElementById("ai-apply-button");
 const aiLoading = document.getElementById("ai-loading");
+const aiCommandStatus = document.getElementById("ai-command-status");
 const aiToggleHandle = document.querySelector("[data-ai-toggle]");
-const ASSET_VERSION = "20260414-1";
+const ASSET_VERSION = "20260414-2";
 let viewer = {
   update() {},
 };
@@ -117,9 +118,15 @@ function bindAiAssistant() {
 }
 
 function toggleAiAssistantExpanded() {
+  return setAiAssistantExpanded(!aiAssistantForm.classList.contains("is-expanded"));
+}
+
+function setAiAssistantExpanded(expanded) {
   const nextExpanded = !aiAssistantForm.classList.contains("is-expanded");
-  aiAssistantForm.classList.toggle("is-expanded", nextExpanded);
-  aiAssistantForm.setAttribute("aria-expanded", String(nextExpanded));
+  const resolvedExpanded = expanded ?? nextExpanded;
+  aiAssistantForm.classList.toggle("is-expanded", resolvedExpanded);
+  aiAssistantForm.setAttribute("aria-expanded", String(resolvedExpanded));
+  return resolvedExpanded;
 }
 
 function toggleMaximize(windowElement) {
@@ -285,6 +292,38 @@ function renderAiAssistantState(payload = {}) {
   elements.aiExplanation.textContent =
     payload.explanation || "Waiting for AI suggestion.";
   renderMessages(elements.aiWarningsList, payload.warnings || [], "No AI warnings yet.");
+  renderAiCommandStatus(payload, changes);
+
+  if ((changes.length > 0 || (payload.warnings || []).length > 0) && !aiAssistantForm.classList.contains("is-expanded")) {
+    setAiAssistantExpanded(true);
+  }
+}
+
+function renderAiCommandStatus(payload = {}, changes = []) {
+  if (!aiCommandStatus) {
+    return;
+  }
+
+  if (payload.explanation) {
+    aiCommandStatus.textContent = payload.explanation;
+    aiCommandStatus.classList.toggle("has-warning", (payload.warnings || []).length > 0);
+    return;
+  }
+
+  if (changes.length > 0) {
+    aiCommandStatus.textContent = changes[0];
+    aiCommandStatus.classList.remove("has-warning");
+    return;
+  }
+
+  if (payload.message) {
+    aiCommandStatus.textContent = payload.message;
+    aiCommandStatus.classList.remove("has-warning");
+    return;
+  }
+
+  aiCommandStatus.textContent = "Enter a request to update the current footing model.";
+  aiCommandStatus.classList.remove("has-warning");
 }
 
 function syncFormWithInputData(inputData) {
