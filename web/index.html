@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="/styles.css?v=20260414-10" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="titlebar titlebar-ai">
+    <div id="page-shell" class="page-shell">
+      <header class="titlebar titlebar-ai shell-dock shell-dock-top" data-ai-dock-slot="top">
         <div class="ai-toolbar-main">
           <form id="ai-assistant-form" class="ai-assistant-form" aria-expanded="false">
             <div class="ai-command-main" data-ai-toggle>
@@ -54,6 +54,12 @@
               </div>
             </div>
           </form>
+          <button
+            id="ai-resize-handle"
+            class="ai-resize-handle"
+            type="button"
+            aria-label="Resize AI bar vertically"
+          ></button>
         </div>
       </header>
 
@@ -68,7 +74,7 @@
                 <h2>Design Inputs</h2>
               </div>
               <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+                <button type="button" class="window-action" data-action="toggle-maximize" aria-label="Expand panel">+</button>
               </div>
             </div>
             <div class="window-body">
@@ -149,7 +155,7 @@
                 <h2>3D Footing View</h2>
               </div>
               <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+                <button type="button" class="window-action" data-action="toggle-maximize" aria-label="Expand panel">+</button>
               </div>
             </div>
             <div class="window-body window-body-model">
@@ -172,7 +178,7 @@
                 <h2>Live Results</h2>
               </div>
               <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+                <button type="button" class="window-action" data-action="toggle-maximize" aria-label="Expand panel">+</button>
               </div>
             </div>
             <div class="window-body">
@@ -247,7 +253,7 @@
                 <h2>Warnings + Assumptions</h2>
               </div>
               <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+                <button type="button" class="window-action" data-action="toggle-maximize" aria-label="Expand panel">+</button>
               </div>
             </div>
             <div class="window-body window-body-notes">
@@ -273,6 +279,7 @@
             </div>
           </section>
       </main>
+      <footer class="titlebar titlebar-ai shell-dock shell-dock-bottom" data-ai-dock-slot="bottom"></footer>
     </div>
 
     <script type="module" src="/app.js?v=20260414-9"></script>
