@@ -8,7 +8,27 @@ const aiApplyButton = document.getElementById("ai-apply-button");
 const aiLoading = document.getElementById("ai-loading");
 const aiCommandStatus = document.getElementById("ai-command-status");
 const aiToggleHandle = document.querySelector("[data-ai-toggle]");
-const ASSET_VERSION = "20260414-2";
+const ASSET_VERSION = "20260414-9";
+const DEFAULT_LAYOUT_SPLIT_X = 50;
+const DEFAULT_LAYOUT_SPLIT_Y = 50;
+const MIN_PANEL_WIDTH_PX = 260;
+const MIN_PANEL_HEIGHT_PX = 220;
+const PANEL_SLOT_CLASSES = [
+  "quadrant-inputs",
+  "quadrant-model",
+  "quadrant-results",
+  "quadrant-notes",
+];
+const HANDLE_DIRECTION_CLASSES = [
+  "panel-resize-handle-left",
+  "panel-resize-handle-right",
+  "panel-resize-handle-top",
+  "panel-resize-handle-bottom",
+  "panel-resize-handle-corner-nw",
+  "panel-resize-handle-corner-ne",
+  "panel-resize-handle-corner-sw",
+  "panel-resize-handle-corner-se",
+];
 let viewer = {
   update() {},
 };
@@ -41,14 +61,19 @@ const windows = [...document.querySelectorAll(".panel-window")];
 let debounceTimer = null;
 let maximizedWindow = null;
 const windowPositions = new Map();
+let activeResizeState = null;
+let draggedPanel = null;
+let activePanelSwapState = null;
 
 initializeLayout();
 
 function initializeLayout() {
   initializeViewer();
   resetLayout();
+  bindWorkspaceResizers();
   bindWindowActions();
   bindWindowMaximize();
+  bindPanelSwapping();
   bindAiAssistant();
   form.addEventListener("input", scheduleCalculation, { passive: true });
   resetLayoutButton.addEventListener("click", resetLayout);
@@ -70,6 +95,9 @@ function resetLayout() {
   if (maximizedWindow) {
     restoreWindow(maximizedWindow);
   }
+  setWorkspaceSplit(DEFAULT_LAYOUT_SPLIT_X, DEFAULT_LAYOUT_SPLIT_Y);
+  resetPanelSlots();
+  syncPanelResizeHandles();
 }
 
 function bindWindowActions() {
@@ -93,6 +121,20 @@ function bindWindowMaximize() {
         return;
       }
       toggleMaximize(windowElement);
+    });
+  });
+}
+
+function bindPanelSwapping() {
+  windows.forEach((windowElement) => {
+    const handle = windowElement.querySelector("[data-window-handle]");
+    const dragHandle = handle?.querySelector(".window-tab") || handle;
+    if (!dragHandle) {
+      return;
+    }
+
+    dragHandle.addEventListener("pointerdown", (event) => {
+      startPanelSwap(event, windowElement, dragHandle);
     });
   });
 }
@@ -188,7 +230,285 @@ function updateMaximizeButton(windowElement, maximized) {
 function handleKeydown(event) {
   if (event.key === "Escape" && maximizedWindow) {
     restoreWindow(maximizedWindow);
+    return;
   }
+
+  if (event.key === "Escape" && activeResizeState) {
+    stopWorkspaceResize();
+    return;
+  }
+
+  if (event.key === "Escape" && activePanelSwapState) {
+    stopPanelSwap();
+  }
+}
+
+function startPanelSwap(event, windowElement, dragHandle) {
+  if (
+    maximizedWindow ||
+    activeResizeState ||
+    window.matchMedia("(max-width: 980px)").matches ||
+    event.button !== 0 ||
+    event.target.closest(".window-action")
+  ) {
+    return;
+  }
+
+  activePanelSwapState = {
+    pointerId: event.pointerId,
+    sourcePanel: windowElement,
+    dragHandle,
+    startX: event.clientX,
+    startY: event.clientY,
+    isDragging: false,
+    dropTarget: null,
+  };
+
+  dragHandle.setPointerCapture?.(event.pointerId);
+  window.addEventListener("pointermove", onPanelSwapMove);
+  window.addEventListener("pointerup", stopPanelSwap);
+  window.addEventListener("pointercancel", stopPanelSwap);
+}
+
+function onPanelSwapMove(event) {
+  if (!activePanelSwapState) {
+    return;
+  }
+
+  const swapState = activePanelSwapState;
+  const moveX = event.clientX - swapState.startX;
+  const moveY = event.clientY - swapState.startY;
+  const distance = Math.hypot(moveX, moveY);
+
+  if (!swapState.isDragging && distance < 8) {
+    return;
+  }
+
+  if (!swapState.isDragging) {
+    swapState.isDragging = true;
+    draggedPanel = swapState.sourcePanel;
+    swapState.sourcePanel.classList.add("is-dragging-panel");
+    document.body.classList.add("is-swapping-panels");
+  }
+
+  const nextTarget = findPanelSwapTarget(event.clientX, event.clientY, swapState.sourcePanel);
+  if (swapState.dropTarget === nextTarget) {
+    return;
+  }
+
+  swapState.dropTarget?.classList.remove("is-panel-drop-target");
+  swapState.dropTarget = nextTarget;
+  swapState.dropTarget?.classList.add("is-panel-drop-target");
+}
+
+function findPanelSwapTarget(clientX, clientY, sourcePanel) {
+  const hoveredElement = document.elementFromPoint(clientX, clientY);
+  const targetPanel = hoveredElement?.closest(".panel-window");
+  if (!targetPanel || targetPanel === sourcePanel || !workspace.contains(targetPanel)) {
+    return null;
+  }
+  return targetPanel;
+}
+
+function bindWorkspaceResizers() {
+  const handles = workspace.querySelectorAll("[data-resize-handle]");
+  handles.forEach((handle) => {
+    handle.addEventListener("pointerdown", startWorkspaceResize);
+  });
+}
+
+function startWorkspaceResize(event) {
+  if (window.matchMedia("(max-width: 980px)").matches || maximizedWindow) {
+    return;
+  }
+
+  const handle = event.currentTarget;
+  const mode = handle.dataset.resizeHandle;
+  if (!mode) {
+    return;
+  }
+
+  event.preventDefault();
+  const rect = workspace.getBoundingClientRect();
+  activeResizeState = {
+    pointerId: event.pointerId,
+    mode,
+    rect,
+  };
+  document.body.classList.add("is-resizing-layout");
+  workspace.classList.add("is-resizing-layout");
+  handle.setPointerCapture?.(event.pointerId);
+  window.addEventListener("pointermove", onWorkspaceResizeMove);
+  window.addEventListener("pointerup", stopWorkspaceResize);
+  window.addEventListener("pointercancel", stopWorkspaceResize);
+}
+
+function onWorkspaceResizeMove(event) {
+  if (!activeResizeState) {
+    return;
+  }
+
+  const { rect, mode } = activeResizeState;
+  let nextSplitX = readWorkspaceSplit("--split-x", DEFAULT_LAYOUT_SPLIT_X);
+  let nextSplitY = readWorkspaceSplit("--split-y", DEFAULT_LAYOUT_SPLIT_Y);
+
+  if (mode.includes("x")) {
+    const minX = (MIN_PANEL_WIDTH_PX / rect.width) * 100;
+    const rawSplitX = ((event.clientX - rect.left) / rect.width) * 100;
+    nextSplitX = clamp(rawSplitX, minX, 100 - minX);
+  }
+
+  if (mode.includes("y")) {
+    const minY = (MIN_PANEL_HEIGHT_PX / rect.height) * 100;
+    const rawSplitY = ((event.clientY - rect.top) / rect.height) * 100;
+    nextSplitY = clamp(rawSplitY, minY, 100 - minY);
+  }
+
+  setWorkspaceSplit(nextSplitX, nextSplitY);
+}
+
+function stopWorkspaceResize() {
+  if (!activeResizeState) {
+    return;
+  }
+
+  activeResizeState = null;
+  document.body.classList.remove("is-resizing-layout");
+  workspace.classList.remove("is-resizing-layout");
+  window.removeEventListener("pointermove", onWorkspaceResizeMove);
+  window.removeEventListener("pointerup", stopWorkspaceResize);
+  window.removeEventListener("pointercancel", stopWorkspaceResize);
+}
+
+function resetPanelSlots() {
+  windows.forEach((windowElement) => {
+    const panelId = windowElement.dataset.panelId;
+    PANEL_SLOT_CLASSES.forEach((className) => {
+      windowElement.classList.remove(className);
+    });
+
+    switch (panelId) {
+      case "inputs":
+        windowElement.classList.add("quadrant-inputs");
+        break;
+      case "model":
+        windowElement.classList.add("quadrant-model");
+        break;
+      case "results":
+        windowElement.classList.add("quadrant-results");
+        break;
+      case "notes":
+        windowElement.classList.add("quadrant-notes");
+        break;
+      default:
+        break;
+    }
+  });
+}
+
+function swapPanelSlots(sourcePanel, targetPanel) {
+  const sourceSlot = getPanelSlotClass(sourcePanel);
+  const targetSlot = getPanelSlotClass(targetPanel);
+  if (!sourceSlot || !targetSlot || sourceSlot === targetSlot) {
+    return;
+  }
+
+  sourcePanel.classList.remove(sourceSlot);
+  targetPanel.classList.remove(targetSlot);
+  sourcePanel.classList.add(targetSlot);
+  targetPanel.classList.add(sourceSlot);
+  syncPanelResizeHandles();
+}
+
+function getPanelSlotClass(windowElement) {
+  return PANEL_SLOT_CLASSES.find((className) => windowElement.classList.contains(className)) || null;
+}
+
+function clearPanelDragState() {
+  draggedPanel = null;
+  windows.forEach((windowElement) => {
+    windowElement.classList.remove("is-dragging-panel", "is-panel-drop-target");
+  });
+  document.body.classList.remove("is-swapping-panels");
+}
+
+function stopPanelSwap() {
+  if (!activePanelSwapState) {
+    return;
+  }
+
+  const { isDragging, sourcePanel, dropTarget } = activePanelSwapState;
+  if (isDragging && sourcePanel && dropTarget) {
+    swapPanelSlots(sourcePanel, dropTarget);
+  }
+
+  activePanelSwapState = null;
+  clearPanelDragState();
+  window.removeEventListener("pointermove", onPanelSwapMove);
+  window.removeEventListener("pointerup", stopPanelSwap);
+  window.removeEventListener("pointercancel", stopPanelSwap);
+}
+
+function syncPanelResizeHandles() {
+  windows.forEach((windowElement) => {
+    const slotClass = getPanelSlotClass(windowElement);
+    if (!slotClass) {
+      return;
+    }
+
+    const xHandle = windowElement.querySelector('[data-resize-handle="x"]');
+    const yHandle = windowElement.querySelector('[data-resize-handle="y"]');
+    const cornerHandle = windowElement.querySelector('[data-resize-handle="xy"]');
+
+    [xHandle, yHandle, cornerHandle].forEach((handle) => {
+      if (!handle) {
+        return;
+      }
+      HANDLE_DIRECTION_CLASSES.forEach((className) => {
+        handle.classList.remove(className);
+      });
+    });
+
+    switch (slotClass) {
+      case "quadrant-inputs":
+        xHandle?.classList.add("panel-resize-handle-right");
+        yHandle?.classList.add("panel-resize-handle-bottom");
+        cornerHandle?.classList.add("panel-resize-handle-corner-se");
+        break;
+      case "quadrant-model":
+        xHandle?.classList.add("panel-resize-handle-left");
+        yHandle?.classList.add("panel-resize-handle-bottom");
+        cornerHandle?.classList.add("panel-resize-handle-corner-sw");
+        break;
+      case "quadrant-results":
+        xHandle?.classList.add("panel-resize-handle-right");
+        yHandle?.classList.add("panel-resize-handle-top");
+        cornerHandle?.classList.add("panel-resize-handle-corner-ne");
+        break;
+      case "quadrant-notes":
+        xHandle?.classList.add("panel-resize-handle-left");
+        yHandle?.classList.add("panel-resize-handle-top");
+        cornerHandle?.classList.add("panel-resize-handle-corner-nw");
+        break;
+      default:
+        break;
+    }
+  });
+}
+
+function setWorkspaceSplit(splitX, splitY) {
+  workspace.style.setProperty("--split-x", `${splitX}%`);
+  workspace.style.setProperty("--split-y", `${splitY}%`);
+}
+
+function readWorkspaceSplit(propertyName, fallbackValue) {
+  const rawValue = getComputedStyle(workspace).getPropertyValue(propertyName).trim();
+  const numericValue = Number.parseFloat(rawValue);
+  return Number.isFinite(numericValue) ? numericValue : fallbackValue;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function collectFormData() {
