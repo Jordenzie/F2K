@@ -128,13 +128,12 @@ function bindWindowMaximize() {
 function bindPanelSwapping() {
   windows.forEach((windowElement) => {
     const handle = windowElement.querySelector("[data-window-handle]");
-    const dragHandle = handle?.querySelector(".window-tab") || handle;
-    if (!dragHandle) {
+    if (!handle) {
       return;
     }
 
-    dragHandle.addEventListener("pointerdown", (event) => {
-      startPanelSwap(event, windowElement, dragHandle);
+    handle.addEventListener("pointerdown", (event) => {
+      startPanelSwap(event, windowElement, handle);
     });
   });
 }

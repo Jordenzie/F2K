@@ -557,12 +557,14 @@ body.is-swapping-panels * {
   gap: 8px;
   padding: 12px 14px 10px;
   border-bottom: 1px solid var(--line);
-}
-
-.window-tab {
   cursor: grab;
 }
 
+.window-tab {
+  cursor: inherit;
+}
+
+.window-header:active,
 .window-tab:active {
   cursor: grabbing;
 }
@@ -591,6 +593,7 @@ body.is-swapping-panels * {
 .window-actions {
   display: inline-flex;
   gap: 6px;
+  cursor: default;
 }
 
 .window.is-maximized .window-action {
@@ -689,6 +692,24 @@ body.is-swapping-panels * {
 .message-card h3 {
   padding-bottom: 7px;
   border-bottom: 1px solid var(--line);
+}
+
+.compact-form label {
+  display: grid;
+  grid-template-columns: minmax(0, 11.5rem) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.compact-form label span {
+  display: block;
+  line-height: 1.35;
+}
+
+.compact-form label input {
+  min-width: 0;
 }
 
 label {
@@ -1156,6 +1177,12 @@ dl div:last-child,
 
   .panel-resize-handle {
     display: none;
+  }
+
+  .compact-form label {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    align-items: start;
   }
 }
 
