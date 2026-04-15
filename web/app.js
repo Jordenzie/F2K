@@ -34,26 +34,10 @@ const elements = {
 };
 
 const windows = [...document.querySelectorAll(".panel-window")];
-const splitters = [...document.querySelectorAll(".splitter")];
-const slots = [...document.querySelectorAll(".dock-slot")];
-
-const defaultLayout = {
-  leftRatio: 0.26,
-  rightRatio: 0.26,
-  centerTopRatio: 0.58,
-};
-
-const defaultSlotByPanel = {
-  inputs: "left",
-  model: "center-top",
-  results: "center-bottom",
-  notes: "right",
-};
 
 let debounceTimer = null;
 let maximizedWindow = null;
 const windowPositions = new Map();
-let dragState = null;
 
 initializeLayout();
 
@@ -62,13 +46,10 @@ function initializeLayout() {
   resetLayout();
   bindWindowActions();
   bindWindowMaximize();
-  bindWindowDrag();
-  bindSplitters();
   bindAiAssistant();
   form.addEventListener("input", scheduleCalculation, { passive: true });
   resetLayoutButton.addEventListener("click", resetLayout);
   window.addEventListener("keydown", handleKeydown);
-  window.addEventListener("resize", syncWorkspaceBounds);
   window.addEventListener("load", calculate);
 }
 
@@ -86,9 +67,6 @@ function resetLayout() {
   if (maximizedWindow) {
     restoreWindow(maximizedWindow);
   }
-
-  resetWindowPositions();
-  resetWorkspaceSize();
 }
 
 function bindWindowActions() {
@@ -116,19 +94,6 @@ function bindWindowMaximize() {
   });
 }
 
-function bindWindowDrag() {
-  windows.forEach((windowElement) => {
-    const handle = windowElement.querySelector("[data-window-handle]");
-    handle.addEventListener("pointerdown", (event) => startWindowDrag(event, windowElement));
-  });
-}
-
-function bindSplitters() {
-  splitters.forEach((splitter) => {
-    splitter.addEventListener("pointerdown", (event) => startSplitterDrag(event, splitter.dataset.splitter));
-  });
-}
-
 function bindAiAssistant() {
   if (!aiAssistantForm) {
     return;
@@ -138,189 +103,6 @@ function bindAiAssistant() {
     event.preventDefault();
     await applyAiSuggestion();
   });
-}
-
-function startSplitterDrag(event, splitterKey) {
-  event.preventDefault();
-  const workspaceRect = workspace.getBoundingClientRect();
-  const splitter = document.querySelector(`.splitter[data-splitter="${splitterKey}"]`);
-  splitter.classList.add("is-active");
-  const minSideWidth = 220;
-  const minCenterWidth = 320;
-  const minCenterTopHeight = 200;
-  const minCenterBottomHeight = 170;
-
-  const onPointerMove = (moveEvent) => {
-    if (splitterKey === "left") {
-      const maxLeft = workspaceRect.width - getRightWidth() - minCenterWidth - 16;
-      const nextWidth = clamp(moveEvent.clientX - workspaceRect.left, minSideWidth, maxLeft);
-      workspace.style.setProperty("--left-width", `${nextWidth}px`);
-      return;
-    }
-
-    if (splitterKey === "right") {
-      const maxRight = workspaceRect.width - getLeftWidth() - minCenterWidth - 16;
-      const nextWidth = clamp(workspaceRect.right - moveEvent.clientX, minSideWidth, maxRight);
-      workspace.style.setProperty("--right-width", `${nextWidth}px`);
-      return;
-    }
-
-    const nextHeight = clamp(
-      moveEvent.clientY - workspaceRect.top,
-      minCenterTopHeight,
-      workspaceRect.height - minCenterBottomHeight - 8
-    );
-    workspace.style.setProperty("--center-top-height", `${nextHeight}px`);
-  };
-
-  const onPointerUp = () => {
-    splitter.classList.remove("is-active");
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-  };
-
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-}
-
-function getWorkspaceWidth() {
-  return workspace.getBoundingClientRect().width;
-}
-
-function getWorkspaceHeight() {
-  return workspace.getBoundingClientRect().height;
-}
-
-function getLeftWidth() {
-  return parseFloat(getComputedStyle(workspace).getPropertyValue("--left-width")) || 0;
-}
-
-function getRightWidth() {
-  return parseFloat(getComputedStyle(workspace).getPropertyValue("--right-width")) || 0;
-}
-
-function getCenterTopHeight() {
-  return parseFloat(getComputedStyle(workspace).getPropertyValue("--center-top-height")) || 0;
-}
-
-function resetWorkspaceSize() {
-  const width = getWorkspaceWidth();
-  const height = getWorkspaceHeight();
-  const leftWidth = Math.round(width * defaultLayout.leftRatio);
-  const rightWidth = Math.round(width * defaultLayout.rightRatio);
-  const centerTopHeight = Math.round(height * defaultLayout.centerTopRatio);
-  workspace.style.setProperty("--left-width", `${clamp(leftWidth, 220, width - rightWidth - 336)}px`);
-  workspace.style.setProperty("--right-width", `${clamp(rightWidth, 220, width - leftWidth - 336)}px`);
-  workspace.style.setProperty("--center-top-height", `${clamp(centerTopHeight, 200, height - 178)}px`);
-}
-
-function syncWorkspaceBounds() {
-  const width = getWorkspaceWidth();
-  const height = getWorkspaceHeight();
-  const currentLeft = getLeftWidth() || width * defaultLayout.leftRatio;
-  const currentRight = getRightWidth() || width * defaultLayout.rightRatio;
-  const currentCenterTop = getCenterTopHeight() || height * defaultLayout.centerTopRatio;
-  const leftClamped = clamp(currentLeft, 220, width - currentRight - 336);
-  const rightClamped = clamp(currentRight, 220, width - leftClamped - 336);
-  workspace.style.setProperty("--left-width", `${leftClamped}px`);
-  workspace.style.setProperty("--right-width", `${rightClamped}px`);
-  workspace.style.setProperty("--center-top-height", `${clamp(currentCenterTop, 200, height - 178)}px`);
-}
-
-function resetWindowPositions() {
-  windows.forEach((windowElement) => {
-    const panelId = windowElement.dataset.panelId;
-    const slotName = defaultSlotByPanel[panelId];
-    const slot = workspace.querySelector(`[data-slot="${slotName}"]`);
-    if (slot) {
-      slot.appendChild(windowElement);
-    }
-  });
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function startWindowDrag(event, windowElement) {
-  if (event.button !== 0) {
-    return;
-  }
-
-  if (event.target.closest(".window-action") || windowElement.classList.contains("is-maximized")) {
-    return;
-  }
-
-  const startX = event.clientX;
-  const startY = event.clientY;
-  let dragging = false;
-
-  const onPointerMove = (moveEvent) => {
-    const movedEnough = Math.abs(moveEvent.clientX - startX) > 6 || Math.abs(moveEvent.clientY - startY) > 6;
-    if (!dragging && movedEnough) {
-      dragging = true;
-      dragState = {
-        windowElement,
-        sourceSlot: windowElement.parentElement,
-        targetSlot: null,
-      };
-      windowElement.classList.add("is-dragging");
-      document.body.classList.add("is-dragging-panel");
-    }
-
-    if (!dragging) {
-      return;
-    }
-
-    const targetSlot = findSlotFromPoint(moveEvent.clientX, moveEvent.clientY);
-    updateSlotHighlight(targetSlot, dragState.sourceSlot);
-    dragState.targetSlot = targetSlot;
-  };
-
-  const onPointerUp = () => {
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-
-    if (!dragging || !dragState) {
-      return;
-    }
-
-    const { sourceSlot, targetSlot } = dragState;
-    if (targetSlot && targetSlot !== sourceSlot) {
-      moveWindowToSlot(windowElement, targetSlot, sourceSlot);
-    }
-
-    clearSlotHighlights();
-    windowElement.classList.remove("is-dragging");
-    document.body.classList.remove("is-dragging-panel");
-    dragState = null;
-  };
-
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-}
-
-function findSlotFromPoint(x, y) {
-  const candidate = document.elementFromPoint(x, y);
-  return candidate?.closest(".dock-slot") || null;
-}
-
-function updateSlotHighlight(targetSlot, sourceSlot) {
-  slots.forEach((slot) => {
-    slot.classList.toggle("is-target", slot === targetSlot && slot !== sourceSlot);
-  });
-}
-
-function clearSlotHighlights() {
-  slots.forEach((slot) => slot.classList.remove("is-target"));
-}
-
-function moveWindowToSlot(windowElement, targetSlot, sourceSlot) {
-  const occupyingWindow = targetSlot.querySelector(".panel-window");
-  if (occupyingWindow) {
-    sourceSlot.appendChild(occupyingWindow);
-  }
-  targetSlot.appendChild(windowElement);
 }
 
 function toggleMaximize(windowElement) {

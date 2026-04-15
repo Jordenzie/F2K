@@ -53,9 +53,8 @@
         </div>
       </header>
 
-      <main id="workspace" class="workspace workspace-three-column">
-        <section class="dock-slot dock-slot-left" data-slot="left">
-          <section class="window panel-window is-docked" data-panel-id="inputs" data-home-slot="left">
+      <main id="workspace" class="workspace workspace-quadrants">
+        <section class="window panel-window quadrant-panel quadrant-inputs" data-panel-id="inputs">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Inputs</span>
@@ -133,12 +132,7 @@
               </form>
             </div>
           </section>
-        </section>
-
-        <div class="splitter splitter-vertical splitter-left" data-splitter="left" title="Drag to resize left panel"></div>
-
-        <section class="dock-slot dock-slot-center-top" data-slot="center-top">
-          <section class="window panel-window is-docked" data-panel-id="model" data-home-slot="center-top">
+        <section class="window panel-window quadrant-panel quadrant-model" data-panel-id="model">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Model</span>
@@ -158,49 +152,7 @@
               </div>
             </div>
           </section>
-        </section>
-
-        <div class="splitter splitter-vertical splitter-right" data-splitter="right" title="Drag to resize right panel"></div>
-
-        <section class="dock-slot dock-slot-right" data-slot="right">
-          <section class="window panel-window is-docked" data-panel-id="notes" data-home-slot="right">
-            <div class="window-header" data-window-handle>
-              <div class="window-tab">
-                <span class="status-label">Notes</span>
-                <h2>Warnings + Assumptions</h2>
-              </div>
-              <div class="window-actions">
-                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
-              </div>
-            </div>
-            <div class="window-body window-body-notes">
-              <div class="message-grid">
-                <article class="message-card warning-card">
-                  <h3>Warnings</h3>
-                  <ul id="warnings-list" class="message-list">
-                    <li>No warnings yet.</li>
-                  </ul>
-                </article>
-
-                <article class="message-card assumption-card">
-                  <h3>Assumptions</h3>
-                  <ul id="assumptions-list" class="message-list">
-                    <li>Waiting for calculation.</li>
-                  </ul>
-                </article>
-              </div>
-
-              <footer class="results-footer">
-                <p id="prelim-note">Preliminary only - verify in full design software.</p>
-              </footer>
-            </div>
-          </section>
-        </section>
-
-        <div class="splitter splitter-horizontal splitter-center" data-splitter="center" title="Drag to resize center stack"></div>
-
-        <section class="dock-slot dock-slot-center-bottom" data-slot="center-bottom">
-          <section class="window panel-window is-docked" data-panel-id="results" data-home-slot="center-bottom">
+        <section class="window panel-window quadrant-panel quadrant-results" data-panel-id="results">
             <div class="window-header" data-window-handle>
               <div class="window-tab">
                 <span class="status-label">Results</span>
@@ -272,7 +224,38 @@
               </div>
             </div>
           </section>
-        </section>
+        <section class="window panel-window quadrant-panel quadrant-notes" data-panel-id="notes">
+            <div class="window-header" data-window-handle>
+              <div class="window-tab">
+                <span class="status-label">Notes</span>
+                <h2>Warnings + Assumptions</h2>
+              </div>
+              <div class="window-actions">
+                <button type="button" class="window-action" data-action="toggle-maximize">Expand</button>
+              </div>
+            </div>
+            <div class="window-body window-body-notes">
+              <div class="message-grid">
+                <article class="message-card warning-card">
+                  <h3>Warnings</h3>
+                  <ul id="warnings-list" class="message-list">
+                    <li>No warnings yet.</li>
+                  </ul>
+                </article>
+
+                <article class="message-card assumption-card">
+                  <h3>Assumptions</h3>
+                  <ul id="assumptions-list" class="message-list">
+                    <li>Waiting for calculation.</li>
+                  </ul>
+                </article>
+              </div>
+
+              <footer class="results-footer">
+                <p id="prelim-note">Preliminary only - verify in full design software.</p>
+              </footer>
+            </div>
+          </section>
       </main>
     </div>
 
